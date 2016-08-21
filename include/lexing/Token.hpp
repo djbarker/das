@@ -3,17 +3,28 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <memory>
 #include "util.hpp"
 
 enum TokenType
 {
-    t_Unknown  = 1 << 0,
-    t_Ignore   = 1 << 1,
-    t_Error    = 1 << 2,
-    t_Int      = 1 << 3,
-    t_Float    = 1 << 4,
-    t_String   = 1 << 5,
-    t_Operator = 1 << 6,
+    t_Unknown   = 1 << 0,
+    t_Ignore    = 1 << 1,
+    t_Error     = 1 << 2,
+    t_Int       = 1 << 3,
+    t_Float     = 1 << 4,
+    t_String    = 1 << 5,
+    t_Operator  = 1 << 6,
+	t_OpenBrkt  = 1 << 7,
+	t_ClsBrkt   = 1 << 8,
+};
+
+enum BracketType
+{
+	Paren,
+	Curly,
+	Square,
+	Angle
 };
 
 std::string TokenType_to_string(TokenType t);
@@ -25,6 +36,8 @@ struct Token
     virtual TokenType getType() const { return t_Unknown; }
     virtual std::string toString() const { return "BASE"; }
 };
+
+typedef std::shared_ptr<Token> token_t;
 
 template<TokenType T, class V>
 struct GenericToken : public Token
@@ -39,6 +52,8 @@ struct GenericToken : public Token
         return sstr.str();
     }
     
+	static const TokenType token_type = T;
+	using value_t = V;
     V value;
 };
 
@@ -47,3 +62,11 @@ using FloatToken  = GenericToken<t_Float, double>;
 using StringToken = GenericToken<t_String, std::string>;
 using OpToken     = GenericToken<t_Operator, std::string>;
 using ErrToken    = GenericToken<t_Error, std::string>;
+using OpenToken   = GenericToken<t_OpenBrkt, BracketType>;
+using CloseToken  = GenericToken<t_ClsBrkt,  BracketType>;
+
+template<class T>
+std::shared_ptr<T> cast_tok(token_t t)
+{
+	return std::static_pointer_cast<T>(t);
+}

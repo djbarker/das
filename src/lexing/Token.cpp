@@ -27,6 +27,12 @@ std::string TokenType_to_string(TokenType t)
         case t_Operator:
             return "OPERATOR";
             break;
+		case t_OpenBrkt:
+			return "OPEN";
+			break;
+		case t_ClsBrkt:
+			return "CLOSE";
+			break;
         default:
             return "VERY_UNKNOWN";
     }

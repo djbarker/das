@@ -6,27 +6,31 @@
 #include <memory>
 #include <regex>
 #include <map>
+#include <stdexcept>
 
 #include "util.hpp"
 #include "Token.hpp"
 
-class BasicLexer
+// helper func
+BracketType char_to_bracket(char c);
+
+class Lexer
 {
 public:
    
-    BasicLexer(){};
-    virtual ~BasicLexer(){};
+    Lexer(){};
+    virtual ~Lexer(){};
 
-    BasicLexer& operator<< (std::string in)
+    Lexer& operator<< (std::string in)
     {
         _buffer << in;
         return *this;
     }
     
-    std::shared_ptr<Token> getTok() 
+    token_t getTok() 
     {
         using namespace std;
-        shared_ptr<Token> out = shared_ptr<Token>(nullptr);
+        token_t out = shared_ptr<Token>(nullptr);
      
         //std::cout << _buffer.str() << endl;
         
@@ -43,29 +47,41 @@ public:
                 {
                     switch(kv.first)
                     {
-                        case Int:
+                        case t_Int:
                         {
                             int v = ::atoi(buff.substr(0,i).c_str());
                             out = make_shared<IntToken>(v);
                             break;
                         }
-                        case Float:
+                        case t_Float:
                         {
                             double v = ::atof(buff.substr(0,i).c_str());
                             out = shared_ptr<FloatToken>(new FloatToken(v));
                             break;
                         }
-                        case String:
+                        case t_String:
                         {
                             out = shared_ptr<StringToken>(new StringToken(buff.substr(0,i)));
                             break;
                         }
-                        case Operator:
+                        case t_Operator:
                         {
                             out = shared_ptr<OpToken>(new OpToken(buff.substr(0,i)));
                             break;
                         }
-                        case Ignore:
+						case t_OpenBrkt:
+						{
+							char c = buff.substr(0,i).c_str()[0];
+							out = shared_ptr<OpenToken>(new OpenToken(char_to_bracket(c)));
+							break;
+						}
+						case t_ClsBrkt:
+						{
+							char c = buff.substr(0,i).c_str()[0];
+							out = shared_ptr<CloseToken>(new CloseToken(char_to_bracket(c)));
+							break;
+						}
+                        case t_Ignore:
                         {
                             _buffer.clear();
                             _buffer.str("");
@@ -85,15 +101,23 @@ public:
             _buffer.clear();
             _buffer.str("");
             _buffer << buff.substr(i, buff.size()-i);
+			_prev_tok = out;
             return out;
         }
               
-        return std::shared_ptr<ErrToken>(new ErrToken(buff)); 
+		_prev_tok = std::shared_ptr<ErrToken>(new ErrToken(buff));
+        return _prev_tok; 
     }
+	
+	token_t prevTok() const 
+	{
+		return _prev_tok;
+	}
     
 protected:
 
     std::stringstream _buffer;
+	token_t _prev_tok;
 
     static const std::map<TokenType,std::regex> _token_regexs;       
 };

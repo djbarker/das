@@ -8,7 +8,7 @@ Parser::Parser()
 }
 
 // takes tokens and builds expressions
-Parser& Parser::operator<< (std::unique_ptr<Token> tok)
+Parser& Parser::operator<< (std::shared_ptr<Token> tok)
 {
 	// start
 	if(root) // == nullptr
