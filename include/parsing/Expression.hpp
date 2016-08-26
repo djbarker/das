@@ -1,5 +1,7 @@
 #include <iostream>
 #include <memory>
+#include <map>
+#include <utility>
 #include "TokenStream.hpp"
 
 
@@ -179,9 +181,92 @@ struct InfixExpression : public Expression // Non-terminal
 		return sstr.str();
 	}
 	
-	static expr_t parse( TokenStream& ts )
+	enum OpDir
 	{
-		size_t pos = ts.getp();
+		Left, 
+		Right
+	};
+	
+	static expr_t compute( expr_t lhs, expr_t rhs, std::string op )
+	{
+		if( ("+"==op) || ("-"==op) || ("/"==op) || ("*"==op) || ("^"==op) )
+		{
+			std::function<double(double,double)> opf;
+			if("+"==op) opf = [&](double x, double y) -> double { return x + y; };
+			if("-"==op) opf = [&](double x, double y) -> double { return x - y; };
+			if("/"==op) opf = [&](double x, double y) -> double { return x / y; };
+			if("*"==op) opf = [&](double x, double y) -> double { return x * y; };
+			if("^"==op) opf = [&](double x, double y) -> double { return pow(x,y); };
+			
+			if( e_Int == rhs->getType() && e_Int == lhs->getType() )
+			{
+				auto l = cast_expr<IntExpr>(lhs);
+				auto r = cast_expr<IntExpr>(rhs);
+				return std::make_shared<IntExpr>((int)opf(l->value,r->value));
+			}
+			else if( e_Float == rhs->getType() && e_Int == lhs->getType() )
+			{
+				auto l = cast_expr<IntExpr>(lhs);
+				auto r = cast_expr<FloatExpr>(rhs);
+				return std::make_shared<FloatExpr>(opf(l->value,r->value));
+			}
+			else if( e_Int == rhs->getType() && e_Float == lhs->getType() )
+			{
+				auto l = cast_expr<FloatExpr>(lhs);
+				auto r = cast_expr<IntExpr>(rhs);
+				return std::make_shared<FloatExpr>(opf(l->value,r->value));
+			}
+			else if( e_Float == rhs->getType() && e_Float == lhs->getType() )
+			{
+				auto l = cast_expr<FloatExpr>(lhs);
+				auto r = cast_expr<FloatExpr>(rhs);
+				return std::make_shared<FloatExpr>(opf(l->value,r->value));
+			}
+		}
+		
+		// does not simplify
+		return std::make_shared<InfixExpression>(lhs,rhs,op);
+	}
+	
+	static std::map<std::string, std::pair<int,OpDir> > Precedence;
+	
+	static expr_t parse( TokenStream& ts, int min_prec = 0 )
+	{
+		using namespace std;
+		
+		// Note: this parses multiple infix pairs and handles precedence
+		size_t pos0 = ts.getp();
+		expr_t lhs, rhs;
+	
+		try
+		{
+			lhs = Expression::parse(ts,e_Paren);
+		}
+		catch(std::runtime_error& e)
+		{
+			ts.setp(pos0);
+			throw e;
+		}
+		
+		size_t pos1 = ts.getp();
+		
+		while(true)
+		{
+			auto tok = ts.peek_curr();
+			if( (tok->getType() != t_Operator) ) break;
+			std::string op = cast_tok<OpToken>(tok)->value;
+			int pmod = Left==Precedence[op].second ? 1 : 0;
+			if( Precedence[op].first < min_prec ) break;
+			ts.get(); // consume operator token
+			rhs = InfixExpression::parse(ts,Precedence[op].first+pmod);
+			lhs = InfixExpression::compute(lhs,rhs,op);
+		}
+		
+		return lhs;
+	
+		// old version
+	
+		/*size_t pos = ts.getp();
 		expr_t lhs, rhs;
 		try
 		{
@@ -200,15 +285,29 @@ struct InfixExpression : public Expression // Non-terminal
 		}
 		
 		std::string op = cast_tok<OpToken>(ts.get())->value;
+		if( Precedence[op].first < min_prec ) // default precedence = 0
+		{
+			ts.setp(pos);
+			throw PrecExcept();
+		}
 		
 		try
 		{
-			rhs = Expression::parse(ts);
+			int pmod = Precedence[op].second==Left ? 1 : 0;
+			rhs = InfixExpression::parse( ts, Precedence[op].first + pmod );
+			rhs = std::make_shared<ParenExpression>(rhs);
 		}
 		catch(std::runtime_error& e)
 		{
-			ts.setp(pos);
-			throw std::runtime_error("Unable to parse rhs of infix");
+			try
+			{
+				rhs = Expression::parse(ts,e_Juxtapos);
+			}
+			catch(std::runtime_error& e)
+			{
+				ts.setp(pos);
+				throw std::runtime_error("Unable to parse rhs of infix");	
+			}
 		}
 		
 		// handle flipper
@@ -277,7 +376,7 @@ struct InfixExpression : public Expression // Non-terminal
 			}
 		}
 		
-		return std::make_shared<InfixExpression>(lhs,rhs,op);
+		return std::make_shared<InfixExpression>(lhs,rhs,op);*/
 	}
 	
 	std::string op;

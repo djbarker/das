@@ -4,6 +4,16 @@ using namespace std;
 
 int rec_level = 0;
 
+std::map<std::string, std::pair<int,InfixExpression::OpDir> >
+InfixExpression::Precedence = {
+		{"-",  {1,  Left } },
+		{"+",  {2,  Left } },
+		{"/",  {3,  Right} },
+		{"*",  {4,  Left } },
+		{"^",  {5,  Right} },
+		{"\\", {6,  Left } }
+	};
+
 std::shared_ptr<Expression> Expression::parse( TokenStream& tok_stream, ExpressionType start )
 {
 	// just try them in order of precedence
