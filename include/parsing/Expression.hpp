@@ -39,7 +39,7 @@ struct Expression // Base
 {
 	Expression(){};
 	virtual ~Expression(){};
-	virtual ExpressionType getType() const { return e_Expr; }
+	virtual ExpressionType getType() const = 0;
 	virtual std::string toString() const = 0;
 	static expr_t parse ( TokenStream&, ExpressionType start=e_Expr );
 };
@@ -85,6 +85,7 @@ struct ParenExpression : public Expression // Non-terminal
 	
 	virtual std::string toString() const override 
 	{
+		//return "{"+exp->toString()+"}";
 		return exp->toString();
 	}
 	
@@ -199,7 +200,7 @@ struct InfixExpression : public Expression // Non-terminal
 		// handle flipper
 		if("\\"==op)
 		{
-			// flipping has higher precedence than juxtaposition 
+			// flipping has higher precedence than juxtaposition & infix
 			switch( rhs->getType() )
 			{
 				case e_Juxtapos:
@@ -210,11 +211,21 @@ struct InfixExpression : public Expression // Non-terminal
 					expr_t lp = std::make_shared<ParenExpression>(ll);
 					return std::make_shared<JuxtaposExpression>(lp,rr);
 				}
+				case e_Infix:
+				{
+					expr_t rl = cast_expr<InfixExpression>(rhs)->lhs;
+					expr_t rr = cast_expr<InfixExpression>(rhs)->rhs;
+					std::string op = cast_expr<InfixExpression>(rhs)->op;
+					expr_t ll = std::make_shared<JuxtaposExpression>(rl,lhs);
+					expr_t lp = std::make_shared<ParenExpression>(ll);
+					return std::make_shared<InfixExpression>(lp,rr,op);
+				}
 			default:
 				break;
 			}
 			
-			return std::make_shared<JuxtaposExpression>(rhs,lhs);
+			expr_t flip = std::make_shared<JuxtaposExpression>(rhs,lhs);
+			return std::make_shared<ParenExpression>(flip);
 		}
 		else
 		{

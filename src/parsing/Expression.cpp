@@ -18,6 +18,7 @@ std::shared_ptr<Expression> Expression::parse( TokenStream& tok_stream, Expressi
 	{
 		if(debug) cout << rec_level << " > " << "Try Infix" << endl;
 		out = InfixExpression::parse(tok_stream);
+		if(debug) cout << rec_level << " > " << out->toString() << endl;
 		rec_level--;
 		return out;
 	}
@@ -28,6 +29,7 @@ std::shared_ptr<Expression> Expression::parse( TokenStream& tok_stream, Expressi
 	{
 		if(debug) cout << rec_level << " > " << "Try Juxta" << endl;
 		out = JuxtaposExpression::parse(tok_stream);
+		if(debug) cout << rec_level << " > " << out->toString() << endl;
 		rec_level--;
 		return out;
 	}
@@ -38,6 +40,7 @@ std::shared_ptr<Expression> Expression::parse( TokenStream& tok_stream, Expressi
 	{
 		if(debug) cout << rec_level << " > " << "Try Paren" << endl;
 		out = ParenExpression::parse(tok_stream);
+		if(debug) cout << rec_level << " > " << out->toString() << endl;
 		rec_level--;
 		return out;
 	}

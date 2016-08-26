@@ -16,18 +16,12 @@ BracketType char_to_bracket(char c)
 {
 	switch(c)
 	{
-	case '(':
-		return Paren;
-	case ')':
-		return Paren;
-	case '[':
-		return Square;
-	case ']':
-		return Square;
-	case '{':
-		return Curly;
-	case '}':
-		return Curly;	
+	case '(': return Paren;
+	case ')': return Paren;
+	case '[': return Square;
+	case ']': return Square;
+	case '{': return Curly;
+	case '}': return Curly;	
 	default:
 		throw std::runtime_error("Invalid bracket char");
 	}

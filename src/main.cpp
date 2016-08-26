@@ -7,7 +7,7 @@ using namespace std;
 int main(int argc, char* argv[])
 {
 	// show lexer output
-	if(true)
+	if(false)
 	{ 
     	Lexer lexer;
     	lexer << argv[1];
