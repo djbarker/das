@@ -38,7 +38,7 @@ public:
         std::string buff = _buffer.str();
 		TokenType prev = t_End;
         int i;
-        for(i = 1; i<(int)buff.size(); ++i )
+        for(i = 1; i<=(int)buff.size(); ++i )
         {
 			TokenType curr = t_End;
             for( auto& kv : _token_regexs )

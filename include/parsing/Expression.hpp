@@ -240,7 +240,7 @@ struct InfixExpression : public Expression // Non-terminal
 	
 		try
 		{
-			lhs = Expression::parse(ts,e_Paren);
+			lhs = Expression::parse(ts,e_Juxtapos);
 		}
 		catch(std::runtime_error& e)
 		{
