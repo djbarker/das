@@ -40,12 +40,13 @@ struct Expression // Base
 	Expression(){};
 	virtual ~Expression(){};
 	virtual ExpressionType getType() const = 0;
-	virtual std::string toString() const = 0;
+	virtual bool terminal() const = 0;
+	virtual std::string toString() const = 0; 
 	static expr_t parse ( TokenStream&, ExpressionType start=e_Expr );
 };
 
 template<ExpressionType E, class Tk>
-struct ValueExpression : public Expression // Terminal
+struct ValueExpression : public Expression
 {
 	using value_t = typename Tk::value_t;
 	using this_t  = ValueExpression<E,Tk>;
@@ -53,6 +54,7 @@ struct ValueExpression : public Expression // Terminal
 	ValueExpression(value_t v):value(v){}
 	virtual ~ValueExpression() = default;
 	virtual ExpressionType getType() const override { return E; }
+	virtual bool terminal() const override { return true; }
 	
 	virtual std::string toString() const override
 	{ 
@@ -77,11 +79,18 @@ struct ValueExpression : public Expression // Terminal
 	value_t value;
 };
 
+// typedefs
+using StringExpr    = ValueExpression<e_String, StringToken >;
+using IntExpr       = ValueExpression<e_Int,    IntToken >;
+using FloatExpr     = ValueExpression<e_Float,  FloatToken >;
+
+
 struct ParenExpression : public Expression // Non-terminal
 {
 	ParenExpression(expr_t e):exp(e){};
 	virtual ~ParenExpression() = default;
 	virtual ExpressionType getType() const override { return e_Expr; };
+	virtual bool terminal() const override { return false; }
 	
 	virtual std::string toString() const override 
 	{
@@ -109,7 +118,10 @@ struct ParenExpression : public Expression // Non-terminal
 		
 		ts.get(); // consume close bracket
 		
-		return std::make_shared<ParenExpression>(exp);
+		if(exp->terminal())
+			return exp;
+		else
+			return std::make_shared<ParenExpression>(exp);
 	}
 	
 	expr_t exp;
@@ -120,6 +132,7 @@ struct JuxtaposExpression : public Expression // Non-terminal
 	JuxtaposExpression(expr_t l, expr_t r):lhs(l),rhs(r){};
 	virtual ~JuxtaposExpression() = default;
 	virtual ExpressionType getType() const { return e_Juxtapos; };
+	virtual bool terminal() const override { return false; }
 	
 	virtual std::string toString() const 
 	{
@@ -157,6 +170,7 @@ struct InfixExpression : public Expression // Non-terminal
 		{};
 	virtual ~InfixExpression() = default;
 	virtual ExpressionType getType() const { return e_Infix; }
+	virtual bool terminal() const override { return false; }
 	
 	virtual std::string toString() const 
 	{
@@ -227,18 +241,46 @@ struct InfixExpression : public Expression // Non-terminal
 			expr_t flip = std::make_shared<JuxtaposExpression>(rhs,lhs);
 			return std::make_shared<ParenExpression>(flip);
 		}
-		else
+		
+		// handle constant arithmetic
+		if( ("+"==op) || ("-"==op) || ("/"==op) || ("*"==op) )
 		{
-			return std::make_shared<InfixExpression>(lhs,rhs,op);
+			std::function<double(double,double)> opf;
+			if("+"==op) opf = [&](double x, double y) -> double { return x + y; };
+			if("-"==op) opf = [&](double x, double y) -> double { return x - y; };
+			if("/"==op) opf = [&](double x, double y) -> double { return x / y; };
+			if("*"==op) opf = [&](double x, double y) -> double { return x * y; };
+			
+			if( e_Int == rhs->getType() && e_Int == lhs->getType() )
+			{
+				auto l = cast_expr<IntExpr>(lhs);
+				auto r = cast_expr<IntExpr>(rhs);
+				return std::make_shared<IntExpr>((int)opf(l->value,r->value));
+			}
+			else if( e_Float == rhs->getType() && e_Int == lhs->getType() )
+			{
+				auto l = cast_expr<IntExpr>(lhs);
+				auto r = cast_expr<FloatExpr>(rhs);
+				return std::make_shared<FloatExpr>(opf(l->value,r->value));
+			}
+			else if( e_Int == rhs->getType() && e_Float == lhs->getType() )
+			{
+				auto l = cast_expr<FloatExpr>(lhs);
+				auto r = cast_expr<IntExpr>(rhs);
+				return std::make_shared<FloatExpr>(opf(l->value,r->value));
+			}
+			else if( e_Float == rhs->getType() && e_Float == lhs->getType() )
+			{
+				auto l = cast_expr<FloatExpr>(lhs);
+				auto r = cast_expr<FloatExpr>(rhs);
+				return std::make_shared<FloatExpr>(opf(l->value,r->value));
+			}
 		}
+		
+		return std::make_shared<InfixExpression>(lhs,rhs,op);
 	}
 	
 	std::string op;
 	expr_t lhs;
 	expr_t rhs;	
 };
-
-// typedefs
-using StringExpr    = ValueExpression<e_String, StringToken >;
-using IntExpr       = ValueExpression<e_Int,    IntToken >;
-using FloatExpr     = ValueExpression<e_Float,  FloatToken >;
