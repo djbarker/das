@@ -1,40 +1,57 @@
 #include <iostream>
+#include <memory>
 #include "TokenStream.hpp"
+
 
 enum ExpressionType
 {
-	e_Expression,
-	e_StringConst,
-	e_IntConst,
-	e_FloatConst,
-	e_Add,
-	e_Sub,
-	e_Mult,
-	e_Div,
-	e_Juxtapos,
-	e_Paren,
+	e_Expr     = 1 << 0,
+	e_Infix    = 1 << 1,
+	e_Juxtapos = 1 << 2,
+	e_Paren    = 1 << 3,
+	e_Int	   = 1 << 4,
+	e_Float    = 1 << 5,
+	e_String   = 1 << 6
 };
 
+// some forward declarations
 struct Expression;
+struct ParenExpression;
+template<ExpressionType E, class Tk> struct ValueExpression;
+struct InfixExpression;
+struct JuxtaposExpression;
+
+using expr_t = std::shared_ptr<Expression>;
+
+template<class T>
+std::shared_ptr<T> cast_expr(expr_t e)
+{
+	return std::static_pointer_cast<T>(e);
+}
+
+struct P
+{
+	template<class T>
+	static expr_t parse( TokenStream& ts ){	return T::parse(ts); }
+};
 
 struct Expression // Base
 {
 	Expression(){};
 	virtual ~Expression(){};
-	virtual ExpressionType getType() const { return e_Expression; }
+	virtual ExpressionType getType() const { return e_Expr; }
 	virtual std::string toString() const = 0;
-	virtual void parse ( TokenStream& ) = 0;
+	static expr_t parse ( TokenStream&, ExpressionType start=e_Expr );
 };
-
-
-using expr_t = std::shared_ptr<Expression>;
-std::shared_ptr<Expression> parse( TokenStream& tok_stream, int start = 0 );
 
 template<ExpressionType E, class Tk>
 struct ValueExpression : public Expression // Terminal
 {
 	using value_t = typename Tk::value_t;
+	using this_t  = ValueExpression<E,Tk>;
 	
+	ValueExpression(value_t v):value(v){}
+	virtual ~ValueExpression() = default;
 	virtual ExpressionType getType() const override { return E; }
 	
 	virtual std::string toString() const override
@@ -44,17 +61,16 @@ struct ValueExpression : public Expression // Terminal
 		return sstr.str();
 	}
 	
-	virtual void parse(TokenStream& ts) override
+	static expr_t parse(TokenStream& ts)
 	{
 		if( ts.peek_curr()->getType() == Tk::token_type )
 		{
-			const auto ptr = cast_tok<Tk>(ts.peek_curr());
-			value = ptr->value;
-			ts.get(); // consume token 
+			const auto ptr = cast_tok<Tk>(ts.get());
+			return std::make_shared<this_t>(ptr->value);
 		}	
 		else
 		{
-			throw std::runtime_error("token not an int");
+			throw std::runtime_error("Token not a value: " + ts.peek_curr()->toString());
 		}
 	}
 	
@@ -63,16 +79,16 @@ struct ValueExpression : public Expression // Terminal
 
 struct ParenExpression : public Expression // Non-terminal
 {
-	ParenExpression() = default;
+	ParenExpression(expr_t e):exp(e){};
 	virtual ~ParenExpression() = default;
-	virtual ExpressionType getType() const override { return e_Expression; };
+	virtual ExpressionType getType() const override { return e_Expr; };
 	
 	virtual std::string toString() const override 
 	{
-		return "(" + exp->toString() + ")";
+		return exp->toString();
 	}
 	
-	virtual void parse( TokenStream& ts ) override
+	static expr_t parse( TokenStream& ts )
 	{
 		// TODO: account for bracket types
 		
@@ -81,10 +97,9 @@ struct ParenExpression : public Expression // Non-terminal
 			
 		size_t pos = ts.getp();
 		token_t tok = ts.get(); // consume open bracket
-		exp = ::parse(ts);
+		auto exp = Expression::parse(ts);
 		tok = ts.peek_curr();
-		std::cout << tok->toString() << std::endl;
-		
+				
 		if( tok->getType()!=t_ClsBrkt)
 		{
 			ts.setp(pos);
@@ -92,6 +107,8 @@ struct ParenExpression : public Expression // Non-terminal
 		}
 		
 		ts.get(); // consume close bracket
+		
+		return std::make_shared<ParenExpression>(exp);
 	}
 	
 	expr_t exp;
@@ -99,7 +116,7 @@ struct ParenExpression : public Expression // Non-terminal
 
 struct JuxtaposExpression : public Expression // Non-terminal
 {
-	JuxtaposExpression() = default;
+	JuxtaposExpression(expr_t l, expr_t r):lhs(l),rhs(r){};
 	virtual ~JuxtaposExpression() = default;
 	virtual ExpressionType getType() const { return e_Juxtapos; };
 	
@@ -108,19 +125,19 @@ struct JuxtaposExpression : public Expression // Non-terminal
 		return "("+lhs->toString() + " " + rhs->toString()+")";
 	}
 	
-	virtual void parse( TokenStream& ts )
+	static expr_t parse( TokenStream& ts )
 	{
 		size_t pos = ts.getp();
+		expr_t lhs, rhs;
 		try
 		{
-			std::cout << "Parsing lhs" << std::endl;
-			lhs = ::parse(ts,1);
-			std::cout << "Parsing rhs" << std::endl;
-			rhs = ::parse(ts,0);	
+			lhs = Expression::parse(ts,e_Paren);
+			rhs = Expression::parse(ts,e_Expr);
+			
+			return std::make_shared<JuxtaposExpression>(lhs,rhs);	
 		}
 		catch(std::runtime_error& e)
 		{
-			std::cout << e.what() << std::endl;
 			ts.setp(pos);
 			throw e;
 		}
@@ -130,28 +147,32 @@ struct JuxtaposExpression : public Expression // Non-terminal
 	expr_t rhs;
 };
 
-template<ExpressionType E>
-struct BinOpExpression : public Expression // Non-terminal
+struct InfixExpression : public Expression // Non-terminal
 {
-	BinOpExpression() = default;
-	virtual ~BinOpExpression() = default;
+	InfixExpression(expr_t l, expr_t r, std::string o)
+		:lhs(l)
+		,rhs(r)
+		,op(o)
+		{};
+	virtual ~InfixExpression() = default;
+	virtual ExpressionType getType() const { return e_Infix; }
 	
-	virtual ExpressionType getType() const { return E; }
 	virtual std::string toString() const 
 	{
 		std::stringstream sstr;
-		sstr << "(" << lhs->toString() << " " << symbol << " " << rhs->toString() << ")";
+		sstr << "(" << lhs->toString() << " " << op << " " << rhs->toString() << ")";
 		return sstr.str();
 	}
 	
-	virtual void parse( TokenStream& ts )
+	static expr_t parse( TokenStream& ts )
 	{
 		size_t pos = ts.getp();
+		expr_t lhs, rhs;
 		try
 		{
-			lhs = ::parse(ts);
+			lhs = Expression::parse(ts,e_Paren);
 		}
-		catch(std::exception& e)
+		catch(std::runtime_error& e)
 		{
 			ts.setp(pos);
 			throw e;
@@ -160,32 +181,53 @@ struct BinOpExpression : public Expression // Non-terminal
 		if( ts.peek_curr()->getType() != t_Operator )
 		{
 			ts.setp(pos);
-			throw std::runtime_error("");
+			throw std::runtime_error("Tok not operator");
 		}
 		
-		symbol = cast_tok<OpToken>(ts.get())->value;
+		std::string op = cast_tok<OpToken>(ts.get())->value;
 		
 		try
 		{
-			rhs = ::parse(ts);
+			rhs = Expression::parse(ts);
 		}
-		catch(std::exception& e)
+		catch(std::runtime_error& e)
 		{
 			ts.setp(pos);
-			throw std::runtime_error("");
+			throw std::runtime_error("Unable to parse rhs of infix");
+		}
+		
+		// handle flipper
+		if("\\"==op)
+		{
+			// flipping has higher precedence than juxtaposition 
+			switch( rhs->getType() )
+			{
+				case e_Juxtapos:
+				{
+					expr_t rl = cast_expr<JuxtaposExpression>(rhs)->lhs;
+					expr_t rr = cast_expr<JuxtaposExpression>(rhs)->rhs;
+					expr_t ll = std::make_shared<JuxtaposExpression>(rl,lhs);
+					expr_t lp = std::make_shared<ParenExpression>(ll);
+					return std::make_shared<JuxtaposExpression>(lp,rr);
+				}
+			default:
+				break;
+			}
+			
+			return std::make_shared<JuxtaposExpression>(rhs,lhs);
+		}
+		else
+		{
+			return std::make_shared<InfixExpression>(lhs,rhs,op);
 		}
 	}
 	
-	std::string symbol;
+	std::string op;
 	expr_t lhs;
 	expr_t rhs;	
 };
 
 // typedefs
-using StringExpr    = ValueExpression<e_StringConst, StringToken >;
-using IntExpr       = ValueExpression<e_IntConst,    IntToken >;
-using FloatExpr     = ValueExpression<e_FloatConst,  FloatToken >;
-using AddExpr       = BinOpExpression<e_Add>;
-using SubExpr       = BinOpExpression<e_Sub>;
-using MultExpr      = BinOpExpression<e_Mult>;
-using DivExpr       = BinOpExpression<e_Div>;
+using StringExpr    = ValueExpression<e_String, StringToken >;
+using IntExpr       = ValueExpression<e_Int,    IntToken >;
+using FloatExpr     = ValueExpression<e_Float,  FloatToken >;

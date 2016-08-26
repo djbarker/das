@@ -2,49 +2,79 @@
 
 using namespace std;
 
-std::shared_ptr<Expression> parse( TokenStream& tok_stream, int start )
+int rec_level = 0;
+
+std::shared_ptr<Expression> Expression::parse( TokenStream& tok_stream, ExpressionType start )
 {
 	// just try them in order of precedence
 	std::shared_ptr<Expression> out;
 	
-	cout << "> " << tok_stream.getp() << endl;
-	cout << "> " << tok_stream.peek_curr()->toString() << endl;
+	const bool debug = false;
+	rec_level++;
+	if(debug) cout << rec_level << " > " << tok_stream.getp() << ", " << tok_stream.peek_curr()->toString() << endl;
 	
-	if( tok_stream.peek_curr()->getType() == t_ClsBrkt )
-	{
-		throw runtime_error("Expr cannot start with )");
-	}
-	
-	if( start < 1)
+	if( start <= e_Infix)
 	try
 	{
-		cout << "Try Juxta" << endl;
-		out = std::make_shared<JuxtaposExpression>();
-		out->parse(tok_stream);
+		if(debug) cout << rec_level << " > " << "Try Infix" << endl;
+		out = InfixExpression::parse(tok_stream);
+		rec_level--;
 		return out;
 	}
-	catch(runtime_error& e){ cout << "J: " <<  e.what() << endl; }
+	catch(runtime_error& e){ if(debug) cout << rec_level << " > " << "B: " << e.what() << endl; }
 	
-	if(start < 2)
+	if( start <= e_Juxtapos)
 	try
 	{
-		cout << "Try Paren" << endl;
-		out = std::make_shared<ParenExpression>();
-		out->parse(tok_stream);
+		if(debug) cout << rec_level << " > " << "Try Juxta" << endl;
+		out = JuxtaposExpression::parse(tok_stream);
+		rec_level--;
 		return out;
 	}
-	catch(runtime_error& e){ cout << "P: " << e.what() << endl; }
+	catch(runtime_error& e){ if(debug) cout << rec_level << " > " << "J: " <<  e.what() << endl; }
 	
-	if( start < 3)
+	if(start <= e_Paren)
 	try
 	{
-		cout << "Try Int" << endl;
-		out = std::make_shared<IntExpr>();
-		out->parse(tok_stream);
+		if(debug) cout << rec_level << " > " << "Try Paren" << endl;
+		out = ParenExpression::parse(tok_stream);
+		rec_level--;
 		return out;
 	}
-	catch(runtime_error& e){ cout << "I: " << e.what() << endl; }
+	catch(runtime_error& e){ if(debug) cout << rec_level << " > " << "P: " << e.what() << endl; }
+	
+	if( start <= e_Int)
+	try
+	{
+		if(debug) cout << rec_level << " > " << "Try Int" << endl;
+		out = IntExpr::parse(tok_stream);
+		rec_level--;
+		return out;
+	}
+	catch(runtime_error& e){ if(debug) cout << rec_level << " > " << "I: " << e.what() << endl; }
+	
+	if( start <= e_Float)
+	try
+	{
+		if(debug) cout << rec_level << " > " << "Try Float" << endl;
+		out = FloatExpr::parse(tok_stream);
+		rec_level--;
+		return out;
+	}
+	catch(runtime_error& e){ if(debug) cout << rec_level << " > " << "I: " << e.what() << endl; }
 	
 	
+	if( start <= e_String)
+	try
+	{
+		if(debug) cout << rec_level << " > " << "Try String" << endl;
+		out = StringExpr::parse(tok_stream);
+		rec_level--;
+		return out;
+	}
+	catch(runtime_error& e){ if(debug) cout << rec_level << " > " << "S: " << e.what() << endl; }
+	
+	
+	rec_level--;
 	throw runtime_error("No grammar match!");
 }

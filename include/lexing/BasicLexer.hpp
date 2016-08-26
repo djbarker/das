@@ -69,6 +69,11 @@ public:
                             out = shared_ptr<OpToken>(new OpToken(buff.substr(0,i)));
                             break;
                         }
+						case t_Type:
+						{
+							out = shared_ptr<TypeToken>(new TypeToken(buff.substr(1,i)));
+							break;
+						}
 						case t_OpenBrkt:
 						{
 							char c = buff.substr(0,i).c_str()[0];
@@ -105,7 +110,7 @@ public:
             return out;
         }
               
-		_prev_tok = std::shared_ptr<ErrToken>(new ErrToken(buff));
+		_prev_tok = std::shared_ptr<EndToken>(new EndToken(buff));
         return _prev_tok; 
     }
 	

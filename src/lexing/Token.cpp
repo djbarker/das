@@ -6,35 +6,17 @@ std::string TokenType_to_string(TokenType t)
 {
     switch(t)
     {
-        case t_Unknown:
-            return "UNKNOWN";
-            break;
-        case t_Ignore:
-            return "IGNORE";
-            break;
-        case t_Error:
-            return "ERROR";
-            break;
-        case t_Int:
-            return "INT";
-            break;
-        case t_Float:
-            return "FLOAT";
-            break;
-        case t_String:
-            return "STRING";
-            break;
-        case t_Operator:
-            return "OPERATOR";
-            break;
-		case t_OpenBrkt:
-			return "OPEN";
-			break;
-		case t_ClsBrkt:
-			return "CLOSE";
-			break;
-        default:
-            return "VERY_UNKNOWN";
+        case t_Unknown:  return "UNKNOWN";
+        case t_Ignore:   return "IGNORE";
+        case t_End:      return "END";
+        case t_Int:      return "INT";
+        case t_Float:    return "FLOAT";
+        case t_String:   return "STRING";
+        case t_Operator: return "OPERATOR";
+		case t_OpenBrkt: return "OPEN";
+		case t_Type:     return "TYPE";
+		case t_ClsBrkt:  return "CLOSE";
+        default:         return "VERY_UNKNOWN";
     }
 }
 

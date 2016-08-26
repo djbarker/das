@@ -10,8 +10,7 @@ TokenStream::TokenStream(Lexer& l)
 		tok = l.getTok();
 		_tokens.push_back(tok);
 	}
-	while( !(tok->getType() & (t_Unknown|t_Error)) );
-	std::cout << "TokStream read " << _tokens.size() << std::endl;
+	while( !(tok->getType() & (t_Unknown|t_End)) );
 }
 
 TokenStream::~TokenStream()
@@ -35,7 +34,7 @@ token_t TokenStream::peek_next() const
 
 token_t TokenStream::get()
 {
-	return _tokens[++_idx];
+	return _tokens[_idx++];
 }
 
 size_t TokenStream::getp() const

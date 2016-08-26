@@ -10,13 +10,14 @@ enum TokenType
 {
     t_Unknown   = 1 << 0,
     t_Ignore    = 1 << 1,
-    t_Error     = 1 << 2,
+    t_End       = 1 << 2,
     t_Int       = 1 << 3,
     t_Float     = 1 << 4,
     t_String    = 1 << 5,
     t_Operator  = 1 << 6,
 	t_OpenBrkt  = 1 << 7,
 	t_ClsBrkt   = 1 << 8,
+	t_Type      = 1 << 9,
 };
 
 enum BracketType
@@ -61,7 +62,8 @@ using IntToken    = GenericToken<t_Int, int>;
 using FloatToken  = GenericToken<t_Float, double>;
 using StringToken = GenericToken<t_String, std::string>;
 using OpToken     = GenericToken<t_Operator, std::string>;
-using ErrToken    = GenericToken<t_Error, std::string>;
+using TypeToken   = GenericToken<t_Type, std::string>;
+using EndToken    = GenericToken<t_End, std::string>;
 using OpenToken   = GenericToken<t_OpenBrkt, BracketType>;
 using CloseToken  = GenericToken<t_ClsBrkt,  BracketType>;
 
