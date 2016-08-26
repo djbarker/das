@@ -1,14 +1,16 @@
 #include "BasicLexer.hpp"
 
-const std::map<TokenType,std::regex>  Lexer::_token_regexs = {
-        { TokenType::t_Ignore,   std::regex("[ \\t\\n\\r]+") }, 
-        { TokenType::t_Int,      std::regex("-?\\d+" ) },
-        { TokenType::t_Float,    std::regex("-?(\\d+\\.|\\.\\d+|\\d+\\.\\d+)" ) },
-		{ TokenType::t_Type,     std::regex("\\$\\w+")},
-        { TokenType::t_Operator, std::regex("[\\+\\-\\>\\<\\?\\*\\@\\~\\#\\'\\/\\%\\^\\&\\£\\!\\|\\\\]+" ) },
-		{ TokenType::t_OpenBrkt, std::regex("[\\[\\(\\{]") },
-		{ TokenType::t_ClsBrkt,  std::regex("[\\]\\)\\}]") },
-        { TokenType::t_String,   std::regex("\\w+" ) }
+using namespace std;
+
+const vector<pair<TokenType,regex>> Lexer::_token_regexs = {
+        { t_Ignore,   regex("[ \\t\\n\\r]+") }, 
+        { t_Int,      regex("\\-?\\d+" ) },
+        { t_Float,    regex("\\-?(\\d+\\.|\\.\\d+|\\d+\\.\\d+)" ) },
+		{ t_Type,     regex("\\$\\w+")},
+		{ t_Operator, regex("[><\\^\\\\\\!\\'\\@\\~\\*\\#\\?\\+\\-]+" ) },
+		{ t_OpenBrkt, regex("[\\[\\(\\{]") },
+		{ t_ClsBrkt,  regex("[\\]\\)\\}]") },
+        { t_String,   regex("\\w+" ) }
     };
 	
 
@@ -23,6 +25,6 @@ BracketType char_to_bracket(char c)
 	case '{': return Curly;
 	case '}': return Curly;	
 	default:
-		throw std::runtime_error("Invalid bracket char");
+		throw runtime_error("Invalid bracket char");
 	}
 }

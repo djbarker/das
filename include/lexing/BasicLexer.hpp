@@ -5,7 +5,7 @@
 #include <iostream>
 #include <memory>
 #include <regex>
-#include <map>
+#include <vector>
 #include <stdexcept>
 
 #include "util.hpp"
@@ -34,71 +34,76 @@ public:
      
         //std::cout << _buffer.str() << endl;
         
-        // just try the regexes until one matches
+        // just try the regexes until no matches, return the last which did match
         std::string buff = _buffer.str();
-        size_t i;
-        for(i = buff.size(); i>0; --i )
+		TokenType prev = t_End;
+        int i;
+        for(i = 1; i<(int)buff.size(); ++i )
         {
-            //std::cout << buff.substr(0,i) << std::endl;
+			TokenType curr = t_End;
             for( auto& kv : _token_regexs )
             {
-                //std::cout << TokenType_to_string(kv.first) << std::endl;
-                if( std::regex_match(buff.substr(0,i), kv.second) )
+				if( std::regex_match(buff.substr(0,i), kv.second) )
                 {
-                    switch(kv.first)
-                    {
-                        case t_Int:
-                        {
-                            int v = ::atoi(buff.substr(0,i).c_str());
-                            out = make_shared<IntToken>(v);
-                            break;
-                        }
-                        case t_Float:
-                        {
-                            double v = ::atof(buff.substr(0,i).c_str());
-                            out = shared_ptr<FloatToken>(new FloatToken(v));
-                            break;
-                        }
-                        case t_String:
-                        {
-                            out = shared_ptr<StringToken>(new StringToken(buff.substr(0,i)));
-                            break;
-                        }
-                        case t_Operator:
-                        {
-                            out = shared_ptr<OpToken>(new OpToken(buff.substr(0,i)));
-                            break;
-                        }
-						case t_Type:
-						{
-							out = shared_ptr<TypeToken>(new TypeToken(buff.substr(1,i)));
-							break;
-						}
-						case t_OpenBrkt:
-						{
-							char c = buff.substr(0,i).c_str()[0];
-							out = shared_ptr<OpenToken>(new OpenToken(char_to_bracket(c)));
-							break;
-						}
-						case t_ClsBrkt:
-						{
-							char c = buff.substr(0,i).c_str()[0];
-							out = shared_ptr<CloseToken>(new CloseToken(char_to_bracket(c)));
-							break;
-						}
-                        case t_Ignore:
-                        {
-                            _buffer.clear();
-                            _buffer.str("");
-                            _buffer << buff.substr(i, buff.size()-i);
-                            return getTok();
-                            break;   
-                        }
-                    }
-                    break;
-                }
-            }
-            if(nullptr!=out.get()) break;
+					curr = kv.first;
+					break;
+				}
+			}
+			
+			if(curr==t_End) break;
+			prev = curr;
+		}
+		i--;
+		
+        switch(prev)
+		{
+			case t_Int:
+			{
+				int v = ::atoi(buff.substr(0,i).c_str());
+				out = make_shared<IntToken>(v);
+				break;
+			}
+			case t_Float:
+			{
+				double v = ::atof(buff.substr(0,i).c_str());
+				out = shared_ptr<FloatToken>(new FloatToken(v));
+				break;
+			}
+			case t_String:
+			{
+				out = shared_ptr<StringToken>(new StringToken(buff.substr(0,i)));
+				break;
+			}
+			case t_Operator:
+			{
+				out = shared_ptr<OpToken>(new OpToken(buff.substr(0,i)));
+				break;
+			}
+			case t_Type:
+			{
+				out = shared_ptr<TypeToken>(new TypeToken(buff.substr(1,i)));
+				break;
+			}
+			case t_OpenBrkt:
+			{
+				char c = buff.substr(0,i).c_str()[0];
+				out = shared_ptr<OpenToken>(new OpenToken(char_to_bracket(c)));
+				break;
+			}
+			case t_ClsBrkt:
+			{
+				char c = buff.substr(0,i).c_str()[0];
+				out = shared_ptr<CloseToken>(new CloseToken(char_to_bracket(c)));
+				break;
+			}			
+			case t_Ignore:
+			{
+				 _buffer.clear();
+				 _buffer.str("");
+				 _buffer << buff.substr(i, buff.size()-i);
+				 return getTok();
+				 break;   
+			}
         }
         
         if(nullptr!=out.get())
@@ -124,5 +129,5 @@ protected:
     std::stringstream _buffer;
 	token_t _prev_tok;
 
-    static const std::map<TokenType,std::regex> _token_regexs;       
+    static const std::vector<std::pair<TokenType,std::regex>> _token_regexs;       
 };
