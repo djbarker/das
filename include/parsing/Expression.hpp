@@ -224,6 +224,21 @@ struct InfixExpression : public Expression // Non-terminal
 			}
 		}
 		
+		if ("\\"==op)
+		{
+			// shift has higher precedence than juxtaposition
+			if( e_Juxtapos == rhs->getType() )
+			{
+				auto rr = cast_expr<JuxtaposExpression>(rhs)->rhs;
+				auto rl = cast_expr<JuxtaposExpression>(rhs)->lhs;
+				auto ll = std::make_shared<JuxtaposExpression>(rl,lhs);
+				auto lp = std::make_shared<ParenExpression>(ll);
+				return std::make_shared<JuxtaposExpression>(lp,rr);
+			}
+			
+			return std::make_shared<JuxtaposExpression>(rhs,lhs);
+		}
+		
 		// does not simplify
 		return std::make_shared<InfixExpression>(lhs,rhs,op);
 	}
