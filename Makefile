@@ -12,11 +12,13 @@ SRCS=src/main.cpp \
 	 src/lexing/BasicLexer.cpp \
 	 src/lexing/Token.cpp \
 	 src/parsing/TokenStream.cpp \
-	 src/parsing/Expression.cpp
+	 src/parsing/Expression.cpp \
+	 src/interpreting/Interpreter.cpp
 
 IFLAGS=-I./include \
        -I./include/lexing \
-	   -I./include/parsing
+	   -I./include/parsing \
+	   -I./include/interpreting \
 
 OBJS = $(SRCS:.c=.o)
 

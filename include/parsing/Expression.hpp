@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <memory>
 #include <map>
@@ -13,7 +15,8 @@ enum ExpressionType
 	e_Paren    = 1 << 3,
 	e_Int	   = 1 << 4,
 	e_Float    = 1 << 5,
-	e_String   = 1 << 6
+	e_Ident    = 1 << 6,
+	e_Type     = 1 << 7,
 };
 
 // some forward declarations
@@ -82,10 +85,10 @@ struct ValueExpression : public Expression
 };
 
 // typedefs
-using StringExpr    = ValueExpression<e_String, StringToken >;
-using IntExpr       = ValueExpression<e_Int,    IntToken >;
-using FloatExpr     = ValueExpression<e_Float,  FloatToken >;
-
+using IdentExpr  = ValueExpression<e_Ident,  IdentToken >;
+using IntExpr    = ValueExpression<e_Int,    IntToken >;
+using FloatExpr  = ValueExpression<e_Float,  FloatToken >;
+using TypeExpr   = ValueExpression<e_Type,   TypeToken >;
 
 struct ParenExpression : public Expression // Non-terminal
 {
@@ -239,7 +242,15 @@ struct InfixExpression : public Expression // Non-terminal
 			return std::make_shared<JuxtaposExpression>(rhs,lhs);
 		}
 		
-		// does not simplify
+		if (":"==op)
+		{
+			if( !lhs->terminal() )
+			{
+				throw std::runtime_error("Can only assing to terminals: "+lhs->toString());
+			}
+		}
+		
+		// does not simplify at parsing
 		return std::make_shared<InfixExpression>(lhs,rhs,op);
 	}
 	

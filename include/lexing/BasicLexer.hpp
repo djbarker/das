@@ -69,9 +69,9 @@ public:
 				out = shared_ptr<FloatToken>(new FloatToken(v));
 				break;
 			}
-			case t_String:
+			case t_Ident:
 			{
-				out = shared_ptr<StringToken>(new StringToken(buff.substr(0,i)));
+				out = shared_ptr<IdentToken>(new IdentToken(buff.substr(0,i)));
 				break;
 			}
 			case t_Operator:

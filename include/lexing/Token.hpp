@@ -13,7 +13,7 @@ enum TokenType
     t_End       = 1 << 2,
     t_Int       = 1 << 3,
     t_Float     = 1 << 4,
-    t_String    = 1 << 5,
+    t_Ident     = 1 << 5,
     t_Operator  = 1 << 6,
 	t_OpenBrkt  = 1 << 7,
 	t_ClsBrkt   = 1 << 8,
@@ -60,7 +60,7 @@ struct GenericToken : public Token
 
 using IntToken    = GenericToken<t_Int, int>;
 using FloatToken  = GenericToken<t_Float, double>;
-using StringToken = GenericToken<t_String, std::string>;
+using IdentToken  = GenericToken<t_Ident, std::string>;
 using OpToken     = GenericToken<t_Operator, std::string>;
 using TypeToken   = GenericToken<t_Type, std::string>;
 using EndToken    = GenericToken<t_End, std::string>;

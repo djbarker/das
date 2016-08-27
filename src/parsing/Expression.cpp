@@ -77,16 +77,22 @@ std::shared_ptr<Expression> Expression::parse( TokenStream& tok_stream, Expressi
 	catch(runtime_error& e){ if(debug) cout << rec_level << " > " << "I: " << e.what() << endl; }
 	
 	
-	if( start <= e_String)
+	if( start <= e_Ident)
 	try
 	{
 		if(debug) cout << rec_level << " > " << "Try String" << endl;
-		out = StringExpr::parse(tok_stream);
+		out = IdentExpr::parse(tok_stream);
 		rec_level--;
 		return out;
 	}
 	catch(runtime_error& e){ if(debug) cout << rec_level << " > " << "S: " << e.what() << endl; }
 	
+	if( start <= e_Type )
+	try
+	{
+		return TypeExpr::parse(tok_stream);
+	}
+	catch(runtime_error& e){ if(debug) cout << rec_level << " > " << "T: " << e.what() << endl; }
 	
 	rec_level--;
 	throw runtime_error("No grammar match!");

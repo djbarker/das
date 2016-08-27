@@ -5,12 +5,14 @@
 
 #include "BasicLexer.hpp"
 #include "Expression.hpp"
-
+#include "Interpreter.hpp"
 
 using namespace std;
 
 int main(int argc, char* argv[])
 {
+	Interpreter intrp;
+	
 	while(true)
 	{
 		Lexer lexer;
@@ -20,12 +22,20 @@ int main(int argc, char* argv[])
         if(*line) add_history(line);
 		std::string ln(line);
 		
-        if( ("exit"==line) || ("quit"==line) ) return 0;
+        if( ("exit"==ln) || ("quit"==ln) ) return 0;
         
-		lexer << ln;
-		TokenStream tok_stream(lexer);
-		expr_t root = Expression::parse(tok_stream);
-		cout << "Parsed expression: " << root->toString() << endl;
+		try
+		{
+			lexer << ln;
+			TokenStream tok_stream(lexer);
+			expr_t root = Expression::parse(tok_stream);
+			cout << "Parsed expr: " << root->toString() << endl;
+			cout << "Intrpd expr: " << intrp.interpret(root, intrp)->toString() << endl;
+		}
+		catch(runtime_error& e)
+		{
+			cout << e.what() << endl;
+		}
 		
 		free(line);
 	}

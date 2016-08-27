@@ -11,7 +11,7 @@ std::string TokenType_to_string(TokenType t)
         case t_End:      return "END";
         case t_Int:      return "INT";
         case t_Float:    return "FLOAT";
-        case t_String:   return "STRING";
+        case t_Ident:   return "STRING";
         case t_Operator: return "OPERATOR";
 		case t_OpenBrkt: return "OPEN";
 		case t_Type:     return "TYPE";

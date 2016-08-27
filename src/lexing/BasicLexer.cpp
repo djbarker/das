@@ -7,10 +7,10 @@ const vector<pair<TokenType,regex>> Lexer::_token_regexs = {
         { t_Int,      regex("\\-?\\d+" ) },
         { t_Float,    regex("\\-?(\\d+\\.|\\.\\d+|\\d+\\.\\d+)" ) },
 		{ t_Type,     regex("\\$\\w+")},
-		{ t_Operator, regex("[></\\^\\\\\\!\\'\\@\\~\\*\\#\\?\\+\\-]+" ) },
+		{ t_Operator, regex("[=></:\\^\\\\\\!\\'\\@\\~\\*\\#\\?\\+\\-]+" ) },
 		{ t_OpenBrkt, regex("[\\[\\(\\{]") },
 		{ t_ClsBrkt,  regex("[\\]\\)\\}]") },
-        { t_String,   regex("\\w+" ) }
+        { t_Ident,    regex("\\w+" ) }
     };
 	
 
